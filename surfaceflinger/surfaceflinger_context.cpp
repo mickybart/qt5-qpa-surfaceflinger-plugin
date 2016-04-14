@@ -75,11 +75,9 @@ static void exit_qt_gracefully(int sig)
 }
 
 SurfaceFlingerContext::SurfaceFlingerContext()
-    : info(new SurfaceFlingerScreenInfo())
-    , backend(NULL)
+    : backend(NULL)
     , display_off(false)
     , window_created(false)
-    , fps(0)
 {
     // We need to catch the SIGTERM and SIGINT signals, so that we can do a
     // proper shutdown of Qt and the plugin, and avoid crashes, hangs and
@@ -94,8 +92,6 @@ SurfaceFlingerContext::SurfaceFlingerContext()
     // Create SurfaceFlinger Client Backend
     backend = SurfaceFlingerBackend::create();
     SF_PLUGIN_ASSERT_NOT_NULL(backend);
-
-    fps = backend->refreshRate();
 }
 
 SurfaceFlingerContext::~SurfaceFlingerContext()
@@ -103,11 +99,8 @@ SurfaceFlingerContext::~SurfaceFlingerContext()
     // Turn display off
     sleepDisplay(true);
 
-    // Properly clean up hwcomposer backend
+    // Properly clean up surfaceflinger backend
     SurfaceFlingerBackend::destroy(backend);
-
-    // Free framebuffer device parameters info
-    delete info;
 }
 
 EGLNativeDisplayType SurfaceFlingerContext::platformDisplay() const
@@ -117,17 +110,17 @@ EGLNativeDisplayType SurfaceFlingerContext::platformDisplay() const
 
 QSizeF SurfaceFlingerContext::physicalScreenSize() const
 {
-    return info->physicalScreenSize();
+    return backend->screenInfo()->physicalScreenSize();
 }
 
 int SurfaceFlingerContext::screenDepth() const
 {
-    return info->screenDepth();
+    return backend->screenInfo()->screenDepth();
 }
 
 QSize SurfaceFlingerContext::screenSize() const
 {
-    return info->screenSize();
+    return backend->screenInfo()->screenSize();
 }
 
 QSurfaceFormat SurfaceFlingerContext::surfaceFormatFor(const QSurfaceFormat &inputFormat) const
@@ -193,7 +186,7 @@ void SurfaceFlingerContext::sleepDisplay(bool sleep)
 
 qreal SurfaceFlingerContext::refreshRate() const
 {
-    return fps;
+    return backend->screenInfo()->refreshRate();
 }
 
 QT_END_NAMESPACE

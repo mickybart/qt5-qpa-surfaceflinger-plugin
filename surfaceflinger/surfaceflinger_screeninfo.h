@@ -54,16 +54,18 @@ QT_BEGIN_NAMESPACE
 
 class SurfaceFlingerScreenInfo {
 public:
-    SurfaceFlingerScreenInfo();
+    SurfaceFlingerScreenInfo(size_t display_id);
 
     QSizeF physicalScreenSize() const { return m_physicalScreenSize; }
     QSize screenSize() const { return m_screenSize; }
     int screenDepth() const { return m_screenDepth; }
+    float refreshRate() const { return m_refreshRate; }
 
 private:
     QSizeF m_physicalScreenSize;
     QSize m_screenSize;
     int m_screenDepth;
+    float m_refreshRate;
 };
 
 QT_END_NAMESPACE

@@ -86,11 +86,9 @@ public:
     qreal refreshRate() const;
 
 private:
-    SurfaceFlingerScreenInfo *info;
     SurfaceFlingerBackend *backend;
     bool display_off;
     bool window_created;
-    qreal fps;
 };
 
 QT_END_NAMESPACE

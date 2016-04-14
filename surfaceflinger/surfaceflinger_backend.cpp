@@ -50,11 +50,13 @@ SurfaceFlingerBackend::SurfaceFlingerBackend(struct SfClient* sf_client)
     : sf_client(sf_client), sf_surface(NULL)
 {
     sleepDisplay(false);
+    screen_info = new SurfaceFlingerScreenInfo(0);
 }
 
 SurfaceFlingerBackend::~SurfaceFlingerBackend()
 {
     // TODO: Add support to release resources
+    delete screen_info;
 }
 
 SurfaceFlingerBackend *
@@ -66,6 +68,12 @@ SurfaceFlingerBackend::create()
     return new SurfaceFlingerBackend(sf_client);
 }
 
+void
+SurfaceFlingerBackend::destroy(SurfaceFlingerBackend *backend)
+{
+    delete backend;
+}
+
 EGLNativeDisplayType
 SurfaceFlingerBackend::display()
 {
@@ -73,10 +81,10 @@ SurfaceFlingerBackend::display()
     return sf_client_get_egl_display(sf_client);
 }
 
-void
-SurfaceFlingerBackend::destroy(SurfaceFlingerBackend *backend)
+SurfaceFlingerScreenInfo*
+SurfaceFlingerBackend::screenInfo()
 {
-    delete backend;
+    return screen_info;
 }
 
 EGLNativeWindowType
@@ -132,13 +140,3 @@ SurfaceFlingerBackend::sleepDisplay(bool sleep)
 #endif
 }
 
-float
-SurfaceFlingerBackend::refreshRate()
-{
-    // TODO: Implement new hwc 1.1 querying of vsync period per-display
-    //
-    // from hwcomposer_defs.h:
-    // "This query is not used for HWC_DEVICE_API_VERSION_1_1 and later.
-    //  Instead, the per-display attribute HWC_DISPLAY_VSYNC_PERIOD is used."
-    return 60.0;
-}

@@ -53,6 +53,8 @@
 #include <linux/fb.h>
 #include <sys/ioctl.h>
 
+#include <hybris/surface_flinger/surface_flinger_compatibility_layer.h>
+
 /* Empty namespace */
 namespace {
 
@@ -61,6 +63,7 @@ const char *ENV_VAR_EGLFS_PHYSICAL_HEIGHT = "QT_QPA_EGLFS_PHYSICAL_HEIGHT";
 const char *ENV_VAR_EGLFS_WIDTH = "QT_QPA_EGLFS_WIDTH";
 const char *ENV_VAR_EGLFS_HEIGHT = "QT_QPA_EGLFS_HEIGHT";
 const char *ENV_VAR_EGLFS_DEPTH = "QT_QPA_EGLFS_DEPTH";
+const char *ENV_VAR_EGLFS_REFRESH_RATE = "QT_QPA_EGLFS_REFRESH_RATE";
 
 // Fallback source: Use default values and print a warning
 
@@ -103,59 +106,90 @@ public:
 
         return DEFAULT_DEPTH;
     }
+    
+    float refreshRate()
+    {
+        const float DEFAULT_REFRESH_RATE = 60.0;
+        
+        qWarning("EGLFS: Cannot determine screen refresh rate, falling back to %f",
+                DEFAULT_REFRESH_RATE);
+        qWarning("EGLFS: To override, set %s",
+                ENV_VAR_EGLFS_REFRESH_RATE);
+        
+        return DEFAULT_REFRESH_RATE;
+    }
 };
 
+// Environment variable source: Use override values from env vars
 
-
-// Framebuffer device source: Try to read values from fbdev
-
-class SurfaceFlingerScreenInfoFbDevSource {
+class SurfaceFlingerScreenInfoAndroidSource {
 public:
-    SurfaceFlingerScreenInfoFbDevSource()
-        : m_valid(false)
+    SurfaceFlingerScreenInfoAndroidSource(size_t display_id)
     {
-        const char *FRAMEBUFFER_DEVICE_NAME = "/dev/fb0";
-
-        // Query variable screen information from framebuffer
-        int framebuffer = qt_safe_open(FRAMEBUFFER_DEVICE_NAME, O_RDONLY);
-        if (framebuffer != -1) {
-            if (ioctl(framebuffer, FBIOGET_VSCREENINFO, &m_vinfo) != -1) {
-                m_valid = true;
-            } else {
-                qWarning("EGLFS: Could not query variable screen info from %s",
-                        FRAMEBUFFER_DEVICE_NAME);
-            }
-            close(framebuffer);
-        } else {
-            qWarning("EGLFS: Failed to open %s", FRAMEBUFFER_DEVICE_NAME);
+        m_width = 0;
+        m_height = 0;
+        m_physicalWidth = 0;
+        m_physicalHeight = 0;
+        m_refresh_rate = 0.0f;
+        
+        struct SfDisplayInfo display_info;
+        if (sf_get_display_info(display_id, &display_info) == 0) {
+            m_width = display_info.w;
+            m_height = display_info.h;
+            m_physicalWidth = m_width * Q_MM_PER_INCH / display_info.xdpi / display_info.density;
+            m_physicalHeight = m_height * Q_MM_PER_INCH / display_info.ydpi / display_info.density;
+            m_refresh_rate = display_info.fps;
         }
     }
 
-    bool isValid()
+    bool hasPhysicalScreenSize()
     {
-        return m_valid;
+        return ((m_physicalWidth != 0) && (m_physicalHeight != 0));
     }
 
     QSizeF physicalScreenSize()
     {
-        return QSizeF(m_vinfo.width, m_vinfo.height);
+        return QSizeF(m_physicalWidth, m_physicalHeight);
+    }
+
+    bool hasScreenSize()
+    {
+        return ((m_width != 0 && m_height != 0));
     }
 
     QSize screenSize()
     {
-        return QSize(m_vinfo.xres, m_vinfo.yres);
+        return QSize(m_width, m_height);
+    }
+
+    bool hasScreenDepth()
+    {
+        return (m_depth != 0);
     }
 
     int screenDepth()
     {
-        return m_vinfo.bits_per_pixel;
+        return m_depth;
+    }
+    
+    bool hasRefreshRate()
+    {
+        return (m_refresh_rate != 0.0f);
+    }
+    
+    float refreshRate()
+    {
+        return m_refresh_rate;
     }
 
 private:
-    struct fb_var_screeninfo m_vinfo;
-    bool m_valid;
+    int m_physicalWidth;
+    int m_physicalHeight;
+    int m_width;
+    int m_height;
+    float m_refresh_rate;
+    int m_depth;
 };
-
 
 
 // Environment variable source: Use override values from env vars
@@ -168,6 +202,7 @@ public:
         , m_width(qgetenv(ENV_VAR_EGLFS_WIDTH).toInt())
         , m_height(qgetenv(ENV_VAR_EGLFS_HEIGHT).toInt())
         , m_depth(qgetenv(ENV_VAR_EGLFS_DEPTH).toInt())
+        , m_refresh_rate(qgetenv(ENV_VAR_EGLFS_REFRESH_RATE).toFloat())
     {
     }
 
@@ -200,6 +235,16 @@ public:
     {
         return m_depth;
     }
+    
+    bool hasRefreshRate()
+    {
+        return (m_refresh_rate != 0.0f);
+    }
+    
+    float refreshRate()
+    {
+        return m_refresh_rate;
+    }
 
 private:
     int m_physicalWidth;
@@ -207,6 +252,7 @@ private:
     int m_width;
     int m_height;
     int m_depth;
+    float m_refresh_rate;
 };
 
 
@@ -215,47 +261,56 @@ private:
 
 QT_BEGIN_NAMESPACE
 
-SurfaceFlingerScreenInfo::SurfaceFlingerScreenInfo()
+SurfaceFlingerScreenInfo::SurfaceFlingerScreenInfo(size_t display_id)
 {
     /**
      * Look up the values in the following order of preference:
      *
      *  1. Environment variables can override everything
-     *  2. fbdev via FBIOGET_VSCREENINFO is preferred otherwise
+     *  2. Android DisplayInfo
      *  3. Fallback values (with warnings) if 1. and 2. fail
      **/
     SurfaceFlingerScreenInfoEnvironmentSource envSource;
-    SurfaceFlingerScreenInfoFbDevSource fbdevSource;
+    SurfaceFlingerScreenInfoAndroidSource androidSource(display_id);
     SurfaceFlingerScreenInfoFallbackSource fallbackSource;
 
     if (envSource.hasScreenSize()) {
         m_screenSize = envSource.screenSize();
-    } else if (fbdevSource.isValid()) {
-        m_screenSize = fbdevSource.screenSize();
+    } else if (androidSource.hasScreenSize()) {
+        m_screenSize = androidSource.screenSize();
     } else {
         m_screenSize = fallbackSource.screenSize();
     }
 
     if (envSource.hasPhysicalScreenSize()) {
         m_physicalScreenSize = envSource.physicalScreenSize();
-    } else if (fbdevSource.isValid()) {
-        m_physicalScreenSize = fbdevSource.physicalScreenSize();
+    } else if (androidSource.hasPhysicalScreenSize()) {
+        m_physicalScreenSize = androidSource.physicalScreenSize();
     } else {
         m_physicalScreenSize = fallbackSource.physicalScreenSize(m_screenSize);
     }
 
     if (envSource.hasScreenDepth()) {
         m_screenDepth = envSource.screenDepth();
-    } else if (fbdevSource.isValid()) {
-        m_screenDepth = fbdevSource.screenDepth();
+    } else if (androidSource.hasScreenDepth()) {
+        m_screenDepth = androidSource.screenDepth();
     } else {
         m_screenDepth = fallbackSource.screenDepth();
+    }
+    
+    if (envSource.hasRefreshRate()) {
+        m_refreshRate = envSource.refreshRate();
+    } else if (androidSource.hasRefreshRate()) {
+        m_refreshRate = androidSource.refreshRate();
+    } else {
+        m_refreshRate = fallbackSource.refreshRate();
     }
 
     qDebug() << "EGLFS: Screen Info";
     qDebug() << " - Physical size:" << m_physicalScreenSize;
     qDebug() << " - Screen size:" << m_screenSize;
     qDebug() << " - Screen depth:" << m_screenDepth;
+    qDebug() << " - Refresh rate:" << m_refreshRate;
 }
 
 QT_END_NAMESPACE

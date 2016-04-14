@@ -53,6 +53,8 @@
 #include <hybris/surface_flinger/surface_flinger_compatibility_layer.h>
 #include <hardware/hwcomposer_defs.h>
 
+#include "surfaceflinger_screeninfo.h"
+
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
 
@@ -94,7 +96,7 @@ public:
     void destroyWindow(EGLNativeWindowType window);
     void swap(EGLNativeDisplayType display, EGLSurface surface);
     void sleepDisplay(bool sleep);
-    float refreshRate();
+    SurfaceFlingerScreenInfo* screenInfo();
 
 protected:
     SurfaceFlingerBackend(struct SfClient* sf_client);
@@ -102,6 +104,7 @@ protected:
 
     struct SfClient* sf_client;
     struct SfSurface* sf_surface;
+    SurfaceFlingerScreenInfo* screen_info;
 };
 
 #endif /* SURFACEFLINGER_BACKEND_H */
