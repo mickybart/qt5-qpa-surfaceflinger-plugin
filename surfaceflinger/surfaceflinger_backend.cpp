@@ -105,7 +105,7 @@ SurfaceFlingerBackend::createWindow(int width, int height)
     sf_surface = sf_surface_create(sf_client, &params);
     SF_PLUGIN_ASSERT_NOT_NULL(sf_surface);
     
-    sf_surface_make_current(sf_surface);
+    //sf_surface_make_current(sf_surface);
     
     return sf_surface_get_egl_native_window(sf_surface);
 }
