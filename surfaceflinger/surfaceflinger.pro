@@ -18,7 +18,7 @@ HEADERS += surfaceflinger_screeninfo.h
 SOURCES += surfaceflinger_backend.cpp
 HEADERS += surfaceflinger_backend.h
 
-QT += core-private compositor-private gui-private platformsupport-private
+QT += core-private gui-private platformsupport-private
 
 DEFINES += QEGL_EXTRA_DEBUG
 CONFIG += egl qpa/genericunixfontdatabase
