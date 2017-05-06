@@ -125,18 +125,10 @@ SurfaceFlingerBackend::swap(EGLNativeDisplayType display, EGLSurface surface)
 void
 SurfaceFlingerBackend::sleepDisplay(bool sleep)
 {
-#if (ANDROID_VERSION_MAJOR < 5)
     if (sleep) {
         sf_blank(0);
     } else {
         sf_unblank(0);
     }
-#else
-    if (sleep) {
-        sf_set_power_mode(0, HWC_POWER_MODE_OFF);
-    } else {
-        sf_set_power_mode(0, HWC_POWER_MODE_NORMAL);
-    }
-#endif
 }
 
