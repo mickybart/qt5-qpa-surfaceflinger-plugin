@@ -42,7 +42,7 @@
 #include "qeglfscontext.h"
 #include "qeglfswindow.h"
 #include "qeglfsintegration.h"
-#include <QtPlatformSupport/private/qeglpbuffer_p.h>
+#include <QtEglSupport/private/qeglpbuffer_p.h>
 #include <QtGui/QSurface>
 #include <QtDebug>
 

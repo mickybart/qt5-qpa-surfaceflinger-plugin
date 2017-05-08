@@ -42,7 +42,7 @@
 #include "qeglfswindow.h"
 #include <qpa/qwindowsysteminterface.h>
 
-#include <QtPlatformSupport/private/qeglconvenience_p.h>
+#include <QtEglSupport/private/qeglconvenience_p.h>
 
 #include <QtDebug>
 

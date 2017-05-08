@@ -56,7 +56,7 @@
 #include <QtGui/QSurfaceFormat>
 #include <QtGui/QImage>
 #include <EGL/egl.h>
-#include <QtPlatformSupport/private/qeglplatformcontext_p.h>
+#include <QtEglSupport/private/qeglplatformcontext_p.h>
 
 QT_BEGIN_NAMESPACE
 
