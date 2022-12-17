@@ -1,16 +1,18 @@
-#Qt 5 QPA SurfaceFlinger plugin
+**This code is archived. It is hosted by [mer-hybris](https://github.com/mer-hybris/qt5-qpa-surfaceflinger-plugin)**
+
+# Qt 5 QPA SurfaceFlinger plugin
 
 QPA plugin used with libhybris EGL and libsf
 
 This plugin is derived from the "eglfs" and "qt5-qpa-hwcomposer" plugin.
 
-##Target
+## Target
 This permit Qt Applications to render into Android SurfaceFlinger from a GNU/Linux distribution.
 
-##Build
+## Build
 
  - You need a patched version of libhybris (see libhybris_ext project for now).
 
-##Links
+## Links
 See [gnulinux_support](https://github.com/mickybart/gnulinux_support) project.
 
